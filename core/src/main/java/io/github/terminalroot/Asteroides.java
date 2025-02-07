@@ -11,7 +11,7 @@ public class Asteroides {
 
     public Asteroides(Texture texture, FitViewport viewport) {
         sprite = new Sprite(texture);
-        sprite.setSize(5, 5);
+        sprite.setSize(1, 1);
 
         float x = MathUtils.random(0, viewport.getWorldWidth() - sprite.getWidth());
         float y = viewport.getWorldHeight();
