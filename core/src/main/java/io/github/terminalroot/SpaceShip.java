@@ -27,7 +27,7 @@ public class SpaceShip extends ApplicationAdapter {
     private Array<Asteroides> asteroides;
     private Array<Missil> misseis;
     private float tempoGeracaoAsteroide;
-    private Rectangle naveRectangle, asteroiRectangle;
+    private Rectangle naveRectangle, asteroiRectangle, missilRectangle;
     // private Vector2 touchPos;
 
     @Override
@@ -50,6 +50,7 @@ public class SpaceShip extends ApplicationAdapter {
         tempoGeracaoAsteroide = 0;
         naveRectangle = new Rectangle();
         asteroiRectangle = new Rectangle();
+        missilRectangle = new Rectangle();
         // touchPos = new Vector2();
     }
 
@@ -91,7 +92,7 @@ public class SpaceShip extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             float xmissil = naveSprite.getX() + naveSprite.getWidth() / 2;
             float ymissil = naveSprite.getY() + naveSprite.getHeight();
-            misseis.add(new Missil(missilTexture, xmissil, ymissil, 15f));
+            misseis.add(new Missil(missilTexture, xmissil, ymissil, 12f));
         }
 
         // if (Gdx.input.isTouched()) {
@@ -102,7 +103,6 @@ public class SpaceShip extends ApplicationAdapter {
     }
 
     private void logic() {
-
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
 
@@ -122,6 +122,19 @@ public class SpaceShip extends ApplicationAdapter {
             tempoGeracaoAsteroide = 0;
         }
 
+        for (int i = misseis.size - 1; i >= 0; i--) {
+            Missil missil = misseis.get(i);
+            float missilWidth = missil.getSprite().getWidth();
+            float missilheight = missil.getSprite().getHeight();
+            missilRectangle.set(missil.getSprite().getX(), missil.getSprite().getY(), missilWidth, missilheight);
+            missil.update(Gdx.graphics.getDeltaTime());
+            if (missil.foraDaTela(viewport)) {
+                misseis.removeIndex(i);
+            } else if (missilRectangle.overlaps(asteroiRectangle)) {
+                misseis.removeIndex(i);
+            }
+        }
+
         for (int i = asteroides.size - 1; i >= 0; i--) {
             Asteroides asteroide = asteroides.get(i);
             asteroide.update(Gdx.graphics.getDeltaTime());
@@ -133,16 +146,11 @@ public class SpaceShip extends ApplicationAdapter {
                 asteroides.removeIndex(i);
             } else if (naveRectangle.overlaps(asteroiRectangle)) { // verifica se encostou na nave
                 asteroides.removeIndex(i);
+            } else if (missilRectangle.overlaps(asteroiRectangle)) { // verifica se encostou no missil
+                asteroides.removeIndex(i);
             }
         }
 
-        for (int i = misseis.size - 1; i >= 0; i--) {
-            Missil missil = misseis.get(i);
-            missil.update(Gdx.graphics.getDeltaTime());
-            if (missil.foraDaTela(viewport)) {
-                misseis.removeIndex(i);
-            }
-        }
     }
 
     private void draw() {
