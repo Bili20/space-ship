@@ -3,6 +3,7 @@ package io.github.terminalroot;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -15,32 +16,32 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.Array;
 
-/**
- * {@link com.badlogic.gdx.ApplicationListener} implementation shared by all
- * platforms.
- */
-public class SpaceShip extends ApplicationAdapter {
+public class GameScreen implements Screen {
+    final Drop game;
+
     private SpriteBatch batch;
     private FitViewport viewport;
-    private Texture nave, fundo, asteroide, missilTexture;
+    private Texture naveTexture, fundoTexture, asteroideTexture, missilTexture;
     private Sprite naveSprite;
     private Array<Asteroides> asteroides;
     private Array<Missil> misseis;
     private float tempoGeracaoAsteroide;
     private Rectangle naveRectangle, asteroiRectangle, missilRectangle;
-    // private Vector2 touchPos;
+    private int asteroideDestruido;
 
-    @Override
-    public void create() {
+    public GameScreen(final Drop game) {
+        this.game = game;
+
         batch = new SpriteBatch();
         viewport = new FitViewport(10 * (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight(), 10);
-        nave = new Texture("idle2.png");
-        fundo = new Texture("fundo.png");
-        asteroide = new Texture("asteroide.png");
+
+        naveTexture = new Texture("idle2.png");
+        fundoTexture = new Texture("fundo.png");
+        asteroideTexture = new Texture("asteroide.png");
         missilTexture = new Texture("missil.png");
 
-        naveSprite = new Sprite(nave);
-        float aspectRatio = (float) nave.getWidth() / nave.getHeight();
+        naveSprite = new Sprite(naveTexture);
+        float aspectRatio = (float) naveTexture.getWidth() / naveTexture.getHeight();
         float desiredWidth = 1f; // Tamanho desejado
         float desiredHeight = desiredWidth / aspectRatio;
         naveSprite.setSize(desiredWidth, desiredHeight);
@@ -51,25 +52,34 @@ public class SpaceShip extends ApplicationAdapter {
         naveRectangle = new Rectangle();
         asteroiRectangle = new Rectangle();
         missilRectangle = new Rectangle();
-        // touchPos = new Vector2();
     }
 
     @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height, true);
+    public void show() {
     }
 
     @Override
-    public void render() {
+    public void render(float delta) {
         draw();
         input();
         logic();
     }
 
     @Override
-    public void dispose() {
-        batch.dispose();
-        nave.dispose();
+    public void resize(int width, int height) {
+        game.viewport.update(width, height, true);
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void hide() {
     }
 
     private void input() {
@@ -118,7 +128,7 @@ public class SpaceShip extends ApplicationAdapter {
         naveRectangle.set(naveSprite.getX(), naveSprite.getY(), naveWidth, naveHeight);
 
         if (tempoGeracaoAsteroide > 1.5f) {
-            asteroides.add(new Asteroides(asteroide, viewport));
+            asteroides.add(new Asteroides(asteroideTexture, viewport));
             tempoGeracaoAsteroide = 0;
         }
 
@@ -146,7 +156,8 @@ public class SpaceShip extends ApplicationAdapter {
                 asteroides.removeIndex(i);
             } else if (naveRectangle.overlaps(asteroiRectangle)) { // verifica se encostou na nave
                 asteroides.removeIndex(i);
-            } else if (missilRectangle.overlaps(asteroiRectangle)) { // verifica se encostou no missil
+            } else if (missilRectangle.overlaps(asteroiRectangle)) {// verifica se encostou no missil
+                asteroideDestruido++;
                 asteroides.removeIndex(i);
             }
         }
@@ -155,24 +166,32 @@ public class SpaceShip extends ApplicationAdapter {
 
     private void draw() {
         ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
+        game.viewport.apply();
+        game.batch.setProjectionMatrix(viewport.getCamera().combined);
+        game.batch.begin();
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
 
-        batch.draw(fundo, 0, 0, worldWidth, worldHeight);
-        naveSprite.draw(batch);
+        game.batch.draw(fundoTexture, 0, 0, worldWidth, worldHeight);
+        naveSprite.draw(game.batch);
+
+        game.font.draw(game.batch, "Asteroides destruidos: " + asteroideDestruido, 0, worldHeight);
 
         for (Asteroides asteroide : asteroides) {
-            asteroide.getSprite().draw(batch);
+            asteroide.getSprite().draw(game.batch);
         }
 
         for (Missil missil : misseis) {
-            missil.getSprite().draw(batch);
+            missil.getSprite().draw(game.batch);
         }
 
-        batch.end();
+        game.batch.end();
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+        naveTexture.dispose();
     }
 }
