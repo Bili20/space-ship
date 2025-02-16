@@ -5,10 +5,10 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-public class MainMenuScreen implements Screen {
+public class GameOverScreen implements Screen {
     final Drop game;
 
-    public MainMenuScreen(final Drop game) {
+    public GameOverScreen(final Drop game) {
         this.game = game;
     }
 
@@ -25,8 +25,7 @@ public class MainMenuScreen implements Screen {
 
         game.batch.begin();
 
-        TextUtils.drawCenteredText(game.batch, game.font, "Bem vindo!!\nClique em qualquer lugar para começar!",
-                game.viewport);
+        TextUtils.drawCenteredText(game.batch, game.font, "Game Over!!", game.viewport);
 
         game.batch.end();
 
@@ -54,6 +53,7 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void dispose() {
+
     }
 
 }

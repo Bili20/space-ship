@@ -19,8 +19,6 @@ import com.badlogic.gdx.utils.Array;
 public class GameScreen implements Screen {
     final Drop game;
 
-    private SpriteBatch batch;
-    private FitViewport viewport;
     private Texture naveTexture, fundoTexture, asteroideTexture, missilTexture;
     private Sprite naveSprite;
     private Array<Asteroides> asteroides;
@@ -28,12 +26,13 @@ public class GameScreen implements Screen {
     private float tempoGeracaoAsteroide;
     private Rectangle naveRectangle, asteroiRectangle, missilRectangle;
     private int asteroideDestruido;
+    private float missilCooldown;
 
     public GameScreen(final Drop game) {
         this.game = game;
 
-        batch = new SpriteBatch();
-        viewport = new FitViewport(10 * (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight(), 10);
+        game.batch = new SpriteBatch();
+        game.viewport = new FitViewport(10 * (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight(), 10);
 
         naveTexture = new Texture("idle2.png");
         fundoTexture = new Texture("fundo.png");
@@ -86,6 +85,10 @@ public class GameScreen implements Screen {
         float speed = 10f;
         float delta = Gdx.graphics.getDeltaTime();
 
+        if (missilCooldown > 0) {
+            missilCooldown -= delta;
+        }
+
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             naveSprite.translateX(speed * delta);
         }
@@ -99,10 +102,11 @@ public class GameScreen implements Screen {
             naveSprite.translateY(-speed * delta);
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && missilCooldown <= 0) {
             float xmissil = naveSprite.getX() + naveSprite.getWidth() / 2;
             float ymissil = naveSprite.getY() + naveSprite.getHeight();
             misseis.add(new Missil(missilTexture, xmissil, ymissil, 12f));
+            missilCooldown = 0.3f;
         }
 
         // if (Gdx.input.isTouched()) {
@@ -113,8 +117,8 @@ public class GameScreen implements Screen {
     }
 
     private void logic() {
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
+        float worldWidth = game.viewport.getWorldWidth();
+        float worldHeight = game.viewport.getWorldHeight();
 
         float naveWidth = naveSprite.getWidth();
         float naveHeight = naveSprite.getHeight();
@@ -128,19 +132,15 @@ public class GameScreen implements Screen {
         naveRectangle.set(naveSprite.getX(), naveSprite.getY(), naveWidth, naveHeight);
 
         if (tempoGeracaoAsteroide > 1.5f) {
-            asteroides.add(new Asteroides(asteroideTexture, viewport));
+            asteroides.add(new Asteroides(asteroideTexture, game.viewport));
             tempoGeracaoAsteroide = 0;
         }
 
         for (int i = misseis.size - 1; i >= 0; i--) {
             Missil missil = misseis.get(i);
-            float missilWidth = missil.getSprite().getWidth();
-            float missilheight = missil.getSprite().getHeight();
-            missilRectangle.set(missil.getSprite().getX(), missil.getSprite().getY(), missilWidth, missilheight);
             missil.update(Gdx.graphics.getDeltaTime());
-            if (missil.foraDaTela(viewport)) {
-                misseis.removeIndex(i);
-            } else if (missilRectangle.overlaps(asteroiRectangle)) {
+
+            if (missil.foraDaTela(game.viewport)) {
                 misseis.removeIndex(i);
             }
         }
@@ -149,17 +149,38 @@ public class GameScreen implements Screen {
             Asteroides asteroide = asteroides.get(i);
             asteroide.update(Gdx.graphics.getDeltaTime());
 
+            if (asteroide.foraDaTela()) {
+                asteroides.removeIndex(i);
+            }
+        }
+
+        for (int i = asteroides.size - 1; i >= 0; i--) {
+            Asteroides asteroide = asteroides.get(i);
+
             asteroiRectangle.set(asteroide.getSprite().getX(), asteroide.getSprite().getY(),
                     asteroide.getSprite().getWidth(), asteroide.getSprite().getHeight());
 
-            if (asteroide.foraDaTela()) {
-                asteroides.removeIndex(i);
-            } else if (naveRectangle.overlaps(asteroiRectangle)) { // verifica se encostou na nave
-                asteroides.removeIndex(i);
-            } else if (missilRectangle.overlaps(asteroiRectangle)) {// verifica se encostou no missil
-                asteroideDestruido++;
-                asteroides.removeIndex(i);
+            for (int j = misseis.size - 1; j >= 0; j--) {
+                Missil missil = misseis.get(j);
+
+                missilRectangle.set(missil.getSprite().getX(), missil.getSprite().getY(), missil.getSprite().getWidth(),
+                        missil.getSprite().getHeight());
+
+                if (asteroiRectangle.overlaps(missilRectangle)) {
+                    asteroides.removeIndex(i);
+                    misseis.removeIndex(j);
+                    asteroideDestruido++;
+
+                    break;
+                }
+
             }
+            if (asteroiRectangle.overlaps(naveRectangle)) {
+                game.setScreen(new GameOverScreen(game));
+                asteroideDestruido = 0;
+                dispose();
+            }
+
         }
 
     }
@@ -167,11 +188,11 @@ public class GameScreen implements Screen {
     private void draw() {
         ScreenUtils.clear(Color.BLACK);
         game.viewport.apply();
-        game.batch.setProjectionMatrix(viewport.getCamera().combined);
+        game.batch.setProjectionMatrix(game.viewport.getCamera().combined);
         game.batch.begin();
 
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
+        float worldWidth = game.viewport.getWorldWidth();
+        float worldHeight = game.viewport.getWorldHeight();
 
         game.batch.draw(fundoTexture, 0, 0, worldWidth, worldHeight);
         naveSprite.draw(game.batch);
@@ -191,7 +212,8 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-        batch.dispose();
         naveTexture.dispose();
+        asteroideTexture.dispose();
+        missilTexture.dispose();
     }
 }
